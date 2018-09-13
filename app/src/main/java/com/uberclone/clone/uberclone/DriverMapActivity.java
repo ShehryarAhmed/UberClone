@@ -10,6 +10,8 @@
     import android.support.v4.app.FragmentActivity;
     import android.os.Bundle;
 
+    import com.firebase.geofire.GeoFire;
+    import com.firebase.geofire.GeoLocation;
     import com.google.android.gms.common.ConnectionResult;
     import com.google.android.gms.common.api.GoogleApiClient;
     import com.google.android.gms.location.LocationRequest;
@@ -20,6 +22,9 @@
     import com.google.android.gms.maps.SupportMapFragment;
     import com.google.android.gms.maps.model.LatLng;
     import com.google.android.gms.maps.model.MarkerOptions;
+    import com.google.firebase.auth.FirebaseAuth;
+    import com.google.firebase.database.DatabaseReference;
+    import com.google.firebase.database.FirebaseDatabase;
 
     public class DriverMapActivity extends FragmentActivity
             implements OnMapReadyCallback, GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener, com.google.android.gms.location.LocationListener {
@@ -73,6 +78,12 @@
 
             mMap.moveCamera(CameraUpdateFactory.newLatLng(latLng));
             mMap.animateCamera(CameraUpdateFactory.zoomTo(18));
+
+            String userID = FirebaseAuth.getInstance().getCurrentUser().getUid();
+            DatabaseReference ref = FirebaseDatabase.getInstance().getReference("driversAvailable");
+
+            GeoFire mGeoFire = new GeoFire(ref);
+            mGeoFire.setLocation(userID, new GeoLocation(location.getLatitude(),location.getLongitude()));
             }
 
 
@@ -101,5 +112,15 @@
         @Override
         public void onConnectionFailed(@NonNull ConnectionResult connectionResult) {
 
+        }
+
+        @Override
+        protected void onStop() {
+            super.onStop();
+            String userID = FirebaseAuth.getInstance().getCurrentUser().getUid();
+            DatabaseReference ref = FirebaseDatabase.getInstance().getReference("driversAvailable");
+
+            GeoFire mGeoFire = new GeoFire(ref);
+            mGeoFire.removeLocation(userID);
         }
     }

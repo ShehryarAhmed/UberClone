@@ -80,25 +80,27 @@ public class DriverLoginActivity extends AppCompatActivity {
         mLoginBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                final String email = mEmail.getText().toString().trim();
-                final String password = mPassword.getText().toString().trim();
+                startActivity(new Intent(DriverLoginActivity.this, DriverMapActivity.class));
 
-                mAuth.signInWithEmailAndPassword(email,password).addOnCompleteListener(new OnCompleteListener<AuthResult>() {
-                    @Override
-                    public void onComplete(@NonNull Task<AuthResult> task) {
-                        if(!task.isSuccessful()){
-                        Toast.makeText(DriverLoginActivity.this, "Some thing wrong", Toast.LENGTH_SHORT).show();
-                        }else{
-                            Toast.makeText(DriverLoginActivity.this, "now login", Toast.LENGTH_SHORT).show();
-
-                            startActivity(new Intent(DriverLoginActivity.this, DriverMapActivity.class));
-                            String userID = mAuth.getCurrentUser().getUid();
-                            DatabaseReference current_user_db =
-                                    FirebaseDatabase.getInstance().getReference().child("Users").child("Drivers").child(userID);
-                            current_user_db.setValue(true);
-                        }
-                    }
-                });
+//                final String email = mEmail.getText().toString().trim();
+//                final String password = mPassword.getText().toString().trim();
+//
+//                mAuth.signInWithEmailAndPassword(email,password).addOnCompleteListener(new OnCompleteListener<AuthResult>() {
+//                    @Override
+//                    public void onComplete(@NonNull Task<AuthResult> task) {
+//                        if(!task.isSuccessful()){
+//                        Toast.makeText(DriverLoginActivity.this, "Some thing wrong", Toast.LENGTH_SHORT).show();
+//                        }else{
+//                            Toast.makeText(DriverLoginActivity.this, "now login", Toast.LENGTH_SHORT).show();
+//
+//                            startActivity(new Intent(DriverLoginActivity.this, DriverMapActivity.class));
+//                            String userID = mAuth.getCurrentUser().getUid();
+//                            DatabaseReference current_user_db =
+//                                    FirebaseDatabase.getInstance().getReference().child("Users").child("Drivers").child(userID);
+//                            current_user_db.setValue(true);
+//                        }
+//                    }
+//                });
             }
         });
     }
