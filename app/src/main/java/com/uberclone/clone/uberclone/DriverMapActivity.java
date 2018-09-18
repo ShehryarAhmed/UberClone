@@ -1,6 +1,7 @@
     package com.uberclone.clone.uberclone;
 
     import android.Manifest;
+    import android.content.Intent;
     import android.content.pm.PackageManager;
     import android.location.Location;
     import android.location.LocationListener;
@@ -9,6 +10,8 @@
     import android.support.v4.app.ActivityCompat;
     import android.support.v4.app.FragmentActivity;
     import android.os.Bundle;
+    import android.view.View;
+    import android.widget.Button;
 
 
     import com.firebase.geofire.GeoFire;
@@ -34,6 +37,7 @@
         GoogleApiClient mGoogleApiClient;
         Location mLastLocation;
         LocationRequest mLocationRequest;
+        private Button mLoggingBtn;
 
         @Override
         protected void onCreate(Bundle savedInstanceState) {
@@ -43,6 +47,16 @@
             SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
                     .findFragmentById(R.id.map);
             mapFragment.getMapAsync(this);
+            mLoggingBtn = (Button) findViewById(R.id.logout);
+            mLoggingBtn.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View view) {
+                    FirebaseAuth.getInstance().signOut();
+                    startActivity( new Intent(DriverMapActivity.this,MainActivity.class));
+                    finish();
+                    return;
+                }
+            });
         }
 
         @Override
