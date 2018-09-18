@@ -10,6 +10,7 @@
     import android.support.v4.app.FragmentActivity;
     import android.os.Bundle;
 
+
     import com.firebase.geofire.GeoFire;
     import com.firebase.geofire.GeoLocation;
     import com.google.android.gms.common.ConnectionResult;
@@ -30,8 +31,7 @@
             implements OnMapReadyCallback, GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener, com.google.android.gms.location.LocationListener {
 
         private GoogleMap mMap;
-        private GoogleApiClient mGoogleApiClient;
-
+        GoogleApiClient mGoogleApiClient;
         Location mLastLocation;
         LocationRequest mLocationRequest;
 
@@ -77,10 +77,10 @@
             LatLng latLng = new LatLng(location.getLatitude(),location.getLongitude());
 
             mMap.moveCamera(CameraUpdateFactory.newLatLng(latLng));
-            mMap.animateCamera(CameraUpdateFactory.zoomTo(18));
+            mMap.animateCamera(CameraUpdateFactory.zoomTo(11));
 
             String userID = FirebaseAuth.getInstance().getCurrentUser().getUid();
-            DatabaseReference ref = FirebaseDatabase.getInstance().getReference("driversAvailable");
+            DatabaseReference ref = FirebaseDatabase.getInstance().getReference("DriverAvailable");
 
             GeoFire mGeoFire = new GeoFire(ref);
             mGeoFire.setLocation(userID, new GeoLocation(location.getLatitude(),location.getLongitude()));
@@ -98,7 +98,6 @@
             mLocationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
 
             if (ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-
                 return;
             }
             LocationServices.FusedLocationApi.requestLocationUpdates(mGoogleApiClient, mLocationRequest, this);
@@ -118,7 +117,7 @@
         protected void onStop() {
             super.onStop();
             String userID = FirebaseAuth.getInstance().getCurrentUser().getUid();
-            DatabaseReference ref = FirebaseDatabase.getInstance().getReference("driversAvailable");
+            DatabaseReference ref = FirebaseDatabase.getInstance().getReference("DriverAvailable");
 
             GeoFire mGeoFire = new GeoFire(ref);
             mGeoFire.removeLocation(userID);
