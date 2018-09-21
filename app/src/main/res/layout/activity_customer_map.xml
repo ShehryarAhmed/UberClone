@@ -18,5 +18,11 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         />
-
+    <Button
+        android:id="@+id/request"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Call Uber"
+        android:layout_gravity="bottom"
+        />
 </FrameLayout>

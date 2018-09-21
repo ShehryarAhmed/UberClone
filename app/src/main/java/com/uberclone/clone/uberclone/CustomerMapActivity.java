@@ -14,6 +14,8 @@ import android.widget.Button;
 
 import com.firebase.geofire.GeoFire;
 import com.firebase.geofire.GeoLocation;
+import com.firebase.geofire.GeoQuery;
+import com.firebase.geofire.GeoQueryEventListener;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.location.LocationRequest;
@@ -23,41 +25,121 @@ import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.Marker;
+import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.ValueEventListener;
+
+import java.util.HashMap;
+import java.util.List;
 
 public class CustomerMapActivity extends FragmentActivity
         implements OnMapReadyCallback, GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener, com.google.android.gms.location.LocationListener {
 
-private GoogleMap mMap;
-        GoogleApiClient mGoogleApiClient;
-        Location mLastLocation;
-        LocationRequest mLocationRequest;
-private Button mLoggingBtn;
+    private GoogleMap mMap;
+    GoogleApiClient mGoogleApiClient;
+    Location mLastLocation;
+    LocationRequest mLocationRequest;
+    private Button mLoggingBtn;
+    private Button mRequestBtn;
+    private LatLng pickUpLocation;
 
-@Override
-protected void onCreate(Bundle savedInstanceState) {
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_driver_map);
+        setContentView(R.layout.activity_customer_map);
         // Obtain the SupportMapFragment and get notified when the map is ready to be used.
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
-        .findFragmentById(R.id.map);
+                .findFragmentById(R.id.map);
         mapFragment.getMapAsync(this);
         mLoggingBtn = (Button) findViewById(R.id.logout);
-        mLoggingBtn.setOnClickListener(new View.OnClickListener() {
-@Override
-public void onClick(View view) {
-        FirebaseAuth.getInstance().signOut();
-        startActivity( new Intent(CustomerMapActivity.this,MainActivity.class));
-        finish();
-        return;
-        }
-        });
-        }
+        mRequestBtn = (Button) findViewById(R.id.request);
 
-@Override
-public void onMapReady(GoogleMap googleMap) {
+        mRequestBtn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                String userID = FirebaseAuth.getInstance().getCurrentUser().getUid();
+
+                DatabaseReference ref = FirebaseDatabase.getInstance().getReference("customerRequest");
+                GeoFire mGeoFire = new GeoFire(ref);
+                mGeoFire.setLocation(userID, new GeoLocation(mLastLocation.getLatitude(), mLastLocation.getLongitude()));
+
+                pickUpLocation = new LatLng(mLastLocation.getLatitude(), mLastLocation.getLongitude());
+                mMap.addMarker(new MarkerOptions().position(pickUpLocation).title("Pick up Point"));
+
+                mRequestBtn.setText("Getting your Driver");
+
+                getClosedDriver();
+            }
+        });
+
+        mLoggingBtn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                FirebaseAuth.getInstance().signOut();
+                startActivity(new Intent(CustomerMapActivity.this, MainActivity.class));
+                finish();
+                return;
+            }
+        });
+    }
+
+    private int radius = 1;
+    private Boolean driverFound = false;
+    private String driverFoundID;
+
+    public void getClosedDriver() {
+        DatabaseReference driverLcation = FirebaseDatabase.getInstance().getReference().child("DriverAvailable");
+
+        GeoFire geoFire = new GeoFire(driverLcation);
+        GeoQuery geoQuery = geoFire.queryAtLocation(new GeoLocation(pickUpLocation.latitude, pickUpLocation.longitude), radius);
+        geoQuery.removeAllListeners();
+
+        geoQuery.addGeoQueryEventListener(new GeoQueryEventListener() {
+            @Override
+            public void onKeyEntered(String key, GeoLocation location) {
+                if(!driverFound){
+                    driverFound = true;
+                    driverFoundID = key;
+
+                    DatabaseReference driverRef = FirebaseDatabase.getInstance().getReference().child("Users").child("Drivers").child(driverFoundID);
+                    String customerID = FirebaseAuth.getInstance().getCurrentUser().getUid();
+                    HashMap map = new HashMap();
+                    map.put("customerRideID",customerID);
+                    driverRef.updateChildren(map);
+
+                    getDriverLocations();
+                    mRequestBtn.setText("Looking For Driver Location");
+                }
+            }
+            @Override
+            public void onKeyExited(String key) {
+
+            }
+            @Override
+            public void onKeyMoved(String key, GeoLocation location) {
+
+            }
+            @Override
+            public void onGeoQueryReady() {
+                if(!driverFound){
+                    radius++;
+                    getClosedDriver();
+                }
+            }
+            @Override
+            public void onGeoQueryError(DatabaseError error) {
+
+            }
+        });
+    }
+
+    @Override
+    public void onMapReady(GoogleMap googleMap) {
         mMap = googleMap;
 
         // Add a marker in Sydney and move the camera
@@ -65,27 +147,28 @@ public void onMapReady(GoogleMap googleMap) {
         //        mMap.addMarker(new MarkerOptions().position(sydney).title("Marker in Sydney"));
         //        mMap.moveCamera(CameraUpdateFactory.newLatLng(sydney));
         if (ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED
-        && ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+                && ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
 
-        return;
+            return;
         }
         buildGooglApiClient();
         mMap.setMyLocationEnabled(true);
-        }
+    }
 
-protected synchronized void buildGooglApiClient(){
+    protected synchronized void buildGooglApiClient() {
         mGoogleApiClient = new GoogleApiClient.Builder(this)
-        .addConnectionCallbacks(this)
-        .addOnConnectionFailedListener(this)
-        .addApi(LocationServices.API)
-        .build();
+                .addConnectionCallbacks(this)
+                .addOnConnectionFailedListener(this)
+                .addApi(LocationServices.API)
+                .build();
         mGoogleApiClient.connect();
-        }
-@Override
-public void onLocationChanged(Location location) {
+    }
+
+    @Override
+    public void onLocationChanged(Location location) {
         mLastLocation = location;
 
-        LatLng latLng = new LatLng(location.getLatitude(),location.getLongitude());
+        LatLng latLng = new LatLng(location.getLatitude(), location.getLongitude());
 
         mMap.moveCamera(CameraUpdateFactory.newLatLng(latLng));
         mMap.animateCamera(CameraUpdateFactory.zoomTo(11));
@@ -95,43 +178,92 @@ public void onLocationChanged(Location location) {
 //
 //        GeoFire mGeoFire = new GeoFire(ref);
 //        mGeoFire.setLocation(userID, new GeoLocation(location.getLatitude(),location.getLongitude()));
-        }
+    }
 
 
-
-
-
-@Override
-public void onConnected(@Nullable Bundle bundle) {
+    @Override
+    public void onConnected(@Nullable Bundle bundle) {
         mLocationRequest = new LocationRequest();
         mLocationRequest.setInterval(1000);
         mLocationRequest.setFastestInterval(1000);
         mLocationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
 
         if (ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-        return;
+            return;
         }
         LocationServices.FusedLocationApi.requestLocationUpdates(mGoogleApiClient, mLocationRequest, this);
-        }
+    }
 
-@Override
-public void onConnectionSuspended(int i) {
+    @Override
+    public void onConnectionSuspended(int i) {
 
-        }
+    }
 
-@Override
-public void onConnectionFailed(@NonNull ConnectionResult connectionResult) {
+    @Override
+    public void onConnectionFailed(@NonNull ConnectionResult connectionResult) {
 
-        }
+    }
 
-@Override
-protected void onStop() {
+    @Override
+    protected void onStop() {
         super.onStop();
 //        String userID = FirebaseAuth.getInstance().getCurrentUser().getUid();
 //        DatabaseReference ref = FirebaseDatabase.getInstance().getReference("DriverAvailable");
 //
 //        GeoFire mGeoFire = new GeoFire(ref);
 //        mGeoFire.removeLocation(userID);
+    }
+
+    private Marker mDriverMarker;
+
+    public void getDriverLocations() {
+        DatabaseReference driverLocationRef = FirebaseDatabase.getInstance().getReference().child("DriverWorking").child(driverFoundID).child("l");
+        driverLocationRef.addValueEventListener(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                if(dataSnapshot.exists()){
+                    List<Object> map = (List<Object>) dataSnapshot.getValue();
+                    double locationLat = 0;
+                    double locationLng = 0;
+
+                    if(map.get(0) != null){
+                        locationLat = Double.parseDouble(map.get(0).toString());
+                    }
+
+                    if(map.get(1) != null){
+                        locationLng = Double.parseDouble(map.get(1).toString());
+                    }
+                    LatLng driverLatlng = new LatLng(locationLat,locationLng);
+                    if(mDriverMarker != null){
+                        mDriverMarker.remove();
+                    }
+
+                    Location loc1 = new Location("");
+                    loc1.setLatitude(pickUpLocation.latitude);
+                    loc1.setLongitude(pickUpLocation.longitude);
+
+                    Location loc2 = new Location("");
+                    loc2.setLatitude(driverLatlng.latitude);
+                    loc2.setLongitude(driverLatlng.longitude);
+
+                    float distance = loc1.distanceTo(loc2);
+
+                    if(distance < 100){
+                        mRequestBtn.setText("Captain Arrived");
+                    }else{
+                        mRequestBtn.setText("Driver Found : "+distance);
+                    }
+
+                    mDriverMarker = mMap.addMarker(new MarkerOptions().position(driverLatlng).title("Your driver here"));
+
+                }
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError databaseError) {
+
+            }
+        });
+    }
 }
-        }
 
