@@ -51,6 +51,11 @@ public class CustomerMapActivity extends FragmentActivity
     private Boolean requestBol = false;
     private Marker pickUpMarker;
 
+    private int radius = 1;
+    private Boolean driverFound = false;
+    private String driverFoundID;
+    private GeoQuery geoQuery;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -59,7 +64,7 @@ public class CustomerMapActivity extends FragmentActivity
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.map);
         mapFragment.getMapAsync(this);
-        mLoggingBtn = (Button) findViewById(R.id.logout);
+            mLoggingBtn = (Button) findViewById(R.id.logout);
         mRequestBtn = (Button) findViewById(R.id.request);
         mRequestBtn.setOnClickListener(new View.OnClickListener() {
             @Override public void onClick(View view) {
@@ -114,10 +119,7 @@ public class CustomerMapActivity extends FragmentActivity
                 });
     }
 
-    private int radius = 1;
-    private Boolean driverFound = false;
-    private String driverFoundID;
-    private GeoQuery geoQuery;
+
 
     public void getClosedDriver() {
         DatabaseReference driverLcation = FirebaseDatabase.getInstance().getReference().child("DriverAvailable");
@@ -202,7 +204,7 @@ public class CustomerMapActivity extends FragmentActivity
         LatLng latLng = new LatLng(location.getLatitude(), location.getLongitude());
 
         mMap.moveCamera(CameraUpdateFactory.newLatLng(latLng));
-        mMap.animateCamera(CameraUpdateFactory.zoomTo(11));
+        mMap.animateCamera(CameraUpdateFactory.zoomTo(14));
 
 //        String userID = FirebaseAuth.getInstance().getCurrentUser().getUid();
 //        DatabaseReference ref = FirebaseDatabase.getInstance().getReference("DriverAvailable");

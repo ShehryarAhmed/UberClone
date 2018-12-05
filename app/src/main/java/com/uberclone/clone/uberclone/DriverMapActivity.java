@@ -45,7 +45,7 @@ public class DriverMapActivity extends FragmentActivity
     LocationRequest mLocationRequest;
     private Button mLogoutBtn;
     private String customerID = "";
-    private boolean isLoggingOut = false;
+    private boolean  isLoggingOut = false;
 
 
     @Override
@@ -234,6 +234,7 @@ public class DriverMapActivity extends FragmentActivity
 
     private void disconnectedDriver(){
 
+        LocationServices.FusedLocationApi.removeLocationUpdates(mGoogleApiClient, this);
         String userID = FirebaseAuth.getInstance().getCurrentUser().getUid();
         DatabaseReference ref = FirebaseDatabase.getInstance().getReference("DriverAvailable");
 
