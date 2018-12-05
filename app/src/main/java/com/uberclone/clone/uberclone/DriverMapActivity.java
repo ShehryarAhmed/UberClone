@@ -4,7 +4,6 @@ import android.Manifest;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.location.Location;
-import android.location.LocationListener;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.v4.app.ActivityCompat;
@@ -36,7 +35,6 @@ import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
 
 import java.util.List;
-import java.util.Map;
 
 public class DriverMapActivity extends FragmentActivity
         implements OnMapReadyCallback, GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener, com.google.android.gms.location.LocationListener {
@@ -45,8 +43,10 @@ public class DriverMapActivity extends FragmentActivity
     GoogleApiClient mGoogleApiClient;
     Location mLastLocation;
     LocationRequest mLocationRequest;
-    private Button mLoggingBtn;
+    private Button mLogoutBtn;
     private String customerID = "";
+    private boolean isLoggingOut = false;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -56,11 +56,14 @@ public class DriverMapActivity extends FragmentActivity
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.map);
         mapFragment.getMapAsync(this);
-        mLoggingBtn = (Button) findViewById(R.id.logout);
+        mLogoutBtn = (Button) findViewById(R.id.logout);
 
-        mLoggingBtn.setOnClickListener(new View.OnClickListener() {
+        mLogoutBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
+                isLoggingOut = true;
+
+                disconnectedDriver();
                 FirebaseAuth.getInstance().signOut();
                 startActivity(new Intent(DriverMapActivity.this, MainActivity.class));
                 finish();
@@ -224,10 +227,18 @@ public class DriverMapActivity extends FragmentActivity
     @Override
     protected void onStop() {
         super.onStop();
+        if(!isLoggingOut){
+            disconnectedDriver();
+        }
+    }
+
+    private void disconnectedDriver(){
+
         String userID = FirebaseAuth.getInstance().getCurrentUser().getUid();
         DatabaseReference ref = FirebaseDatabase.getInstance().getReference("DriverAvailable");
 
         GeoFire mGeoFire = new GeoFire(ref);
         mGeoFire.removeLocation(userID);
+
     }
 }
