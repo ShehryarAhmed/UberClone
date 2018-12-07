@@ -11,8 +11,12 @@ import android.support.v4.app.FragmentActivity;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.Button;
+import android.widget.ImageView;
+import android.widget.LinearLayout;
+import android.widget.TextView;
 
 
+import com.bumptech.glide.Glide;
 import com.firebase.geofire.GeoFire;
 import com.firebase.geofire.GeoLocation;
 import com.google.android.gms.common.ConnectionResult;
@@ -35,6 +39,7 @@ import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
 
 import java.util.List;
+import java.util.Map;
 
 public class DriverMapActivity extends FragmentActivity
         implements OnMapReadyCallback, GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener, com.google.android.gms.location.LocationListener {
@@ -47,6 +52,12 @@ public class DriverMapActivity extends FragmentActivity
     private String customerID = "";
     private boolean  isLoggingOut = false;
 
+    private LinearLayout mCustomerInfo;
+    private ImageView mCustomerProfileImage;
+    private TextView customerName;
+    private TextView customerPhone;
+
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -56,7 +67,13 @@ public class DriverMapActivity extends FragmentActivity
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.map);
         mapFragment.getMapAsync(this);
+
+
         mLogoutBtn = (Button) findViewById(R.id.logout);
+        mCustomerInfo = (LinearLayout) findViewById(R.id.customerInfo);
+        mCustomerProfileImage = (ImageView) findViewById(R.id.customerPorfileImage);
+        customerName= (TextView) findViewById(R.id.customerName);
+        customerPhone = (TextView) findViewById(R.id.customerPhone);
 
         mLogoutBtn.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -70,6 +87,8 @@ public class DriverMapActivity extends FragmentActivity
                 return;
             }
         });
+
+
         getAssignedCustomer();
     }
 
@@ -82,6 +101,7 @@ public class DriverMapActivity extends FragmentActivity
                 if (dataSnapshot.exists()) {
                         customerID = dataSnapshot.getValue().toString();
                         getAssignCustomerPickupLocation();
+                        getAssignCustomerInfo();
                 }
                 else{
                     customerID = "";
@@ -92,6 +112,10 @@ public class DriverMapActivity extends FragmentActivity
                         assignCustomerPickUpLocationRef.removeEventListener(assignCustomerPickUpLocationRefListner);
 
                     }
+                    mCustomerInfo.setVisibility(View.GONE);
+                    mCustomerProfileImage.setImageResource(R.drawable.ic_launcher_background);
+                    customerName.setText("");
+                    customerPhone.setText("");
                 }
             }
 
@@ -241,5 +265,38 @@ public class DriverMapActivity extends FragmentActivity
         GeoFire mGeoFire = new GeoFire(ref);
         mGeoFire.removeLocation(userID);
 
+    }
+
+    private void getAssignCustomerInfo(){
+        mCustomerInfo.setVisibility(View.VISIBLE);
+
+        DatabaseReference mcustomerDatabase = FirebaseDatabase.getInstance().getReference().child("Users").child("Customres").child(customerID);
+
+        mcustomerDatabase.addValueEventListener(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                if(dataSnapshot.exists() && dataSnapshot.getChildrenCount() > 0 ){
+                    Map<String, Object> map = (Map<String, Object>) dataSnapshot.getValue();
+                    if(map.get("name") != null){
+                        final String mUserName = map.get("name").toString();
+                        customerName.setText(mUserName);
+                    }
+                    if(map.get("phone") != null){
+                        final String mPhone = map.get("phone").toString();
+                        customerPhone.setText(mPhone);
+
+                    }
+                    if(map.get("profileImageUrl") != null){
+                        final String mProfileImageUrl = map.get("profileImageUrl").toString();
+                        Glide.with(getApplicationContext()).load(mProfileImageUrl).into(mCustomerProfileImage);
+                    }
+                }
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError databaseError) {
+
+            }
+        });
     }
 }

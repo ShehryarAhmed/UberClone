@@ -47,6 +47,7 @@ public class CustomerMapActivity extends FragmentActivity
     LocationRequest mLocationRequest;
     private Button mLoggingBtn;
     private Button mRequestBtn;
+    private Button mSettingBtn;
     private LatLng pickUpLocation;
     private Boolean requestBol = false;
     private Marker pickUpMarker;
@@ -64,8 +65,10 @@ public class CustomerMapActivity extends FragmentActivity
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.map);
         mapFragment.getMapAsync(this);
-            mLoggingBtn = (Button) findViewById(R.id.logout);
+        mLoggingBtn = (Button) findViewById(R.id.logout);
         mRequestBtn = (Button) findViewById(R.id.request);
+        mSettingBtn = (Button) findViewById(R.id.setting);
+
         mRequestBtn.setOnClickListener(new View.OnClickListener() {
             @Override public void onClick(View view) {
                      if (requestBol) {
@@ -114,6 +117,15 @@ public class CustomerMapActivity extends FragmentActivity
                         FirebaseAuth.getInstance().signOut();
                         startActivity(new Intent(CustomerMapActivity.this, MainActivity.class));
                         finish();
+                        return;
+                    }
+                });
+
+                mSettingBtn.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View view) {
+                        Intent intent = new Intent(CustomerMapActivity.this,CustomerSettingActivity.class);
+                        startActivity(intent);
                         return;
                     }
                 });
@@ -215,7 +227,7 @@ public class CustomerMapActivity extends FragmentActivity
 
 
     @Override
-    public void onConnected(@Nullable Bundle bundle) {
+    public void onConnected(@Nullable Bundle bundle ) {
         mLocationRequest = new LocationRequest();
         mLocationRequest.setInterval(1000);
         mLocationRequest.setFastestInterval(1000);
