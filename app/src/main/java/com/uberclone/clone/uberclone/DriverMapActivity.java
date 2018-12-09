@@ -14,6 +14,7 @@ import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
+import android.widget.Toast;
 
 
 import com.bumptech.glide.Glide;
@@ -49,11 +50,13 @@ public class DriverMapActivity extends FragmentActivity
     Location mLastLocation;
     LocationRequest mLocationRequest;
     private Button mLogoutBtn;
+    private Button mSettingsBtn;
     private String customerID = "";
     private boolean  isLoggingOut = false;
-
+    private SupportMapFragment mapFragment;
     private LinearLayout mCustomerInfo;
     private ImageView mCustomerProfileImage;
+    private TextView customerDestination;
     private TextView customerName;
     private TextView customerPhone;
 
@@ -64,14 +67,22 @@ public class DriverMapActivity extends FragmentActivity
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_driver_map);
         // Obtain the SupportMapFragment and get notified when the map is ready to be used.
-        SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
+        mapFragment = (SupportMapFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.map);
-        mapFragment.getMapAsync(this);
+
+        if (ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(DriverMapActivity.this, new String[]{Manifest.permission.ACCESS_FINE_LOCATION},LOCATION_REQUEST_CODE);
+        }else{
+            mapFragment.getMapAsync(this);
+
+        }
 
 
         mLogoutBtn = (Button) findViewById(R.id.logout);
+        mSettingsBtn = (Button) findViewById(R.id.setting);
         mCustomerInfo = (LinearLayout) findViewById(R.id.customerInfo);
         mCustomerProfileImage = (ImageView) findViewById(R.id.customerPorfileImage);
+        customerDestination= (TextView) findViewById(R.id.custmerDestination);
         customerName= (TextView) findViewById(R.id.customerName);
         customerPhone = (TextView) findViewById(R.id.customerPhone);
 
@@ -88,13 +99,20 @@ public class DriverMapActivity extends FragmentActivity
             }
         });
 
+        mSettingsBtn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                startActivity(new Intent(DriverMapActivity.this, DriverSettingActivity.class));
+                finish();
+            }
+        });
 
         getAssignedCustomer();
     }
 
     private void getAssignedCustomer() {
         String driverID = FirebaseAuth.getInstance().getCurrentUser().getUid();
-        DatabaseReference assignCustomerRef = FirebaseDatabase.getInstance().getReference("Users").child("Drivers").child(driverID).child("customerRideID");
+        DatabaseReference assignCustomerRef = FirebaseDatabase.getInstance().getReference("Users").child("Drivers").child(driverID).child("CustomerRequest").child("CustomerRideID");
         assignCustomerRef.addValueEventListener(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
@@ -102,6 +120,7 @@ public class DriverMapActivity extends FragmentActivity
                         customerID = dataSnapshot.getValue().toString();
                         getAssignCustomerPickupLocation();
                         getAssignCustomerInfo();
+                        getAssignCustomerDestination();
                 }
                 else{
                     customerID = "";
@@ -116,6 +135,7 @@ public class DriverMapActivity extends FragmentActivity
                     mCustomerProfileImage.setImageResource(R.drawable.ic_launcher_background);
                     customerName.setText("");
                     customerPhone.setText("");
+                    customerDestination.setText("Destination: --");
                 }
             }
 
@@ -130,8 +150,9 @@ public class DriverMapActivity extends FragmentActivity
     Marker pickUpLocationMarker;
     private DatabaseReference assignCustomerPickUpLocationRef;
     private ValueEventListener assignCustomerPickUpLocationRefListner;
+
     private void getAssignCustomerPickupLocation() {
-        assignCustomerPickUpLocationRef = FirebaseDatabase.getInstance().getReference().child("customerRequest").child(customerID).child("l");
+        assignCustomerPickUpLocationRef = FirebaseDatabase.getInstance().getReference().child("CustomerRequest").child(customerID).child("l");
         assignCustomerPickUpLocationRefListner = assignCustomerPickUpLocationRef.addValueEventListener(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
@@ -196,7 +217,7 @@ public class DriverMapActivity extends FragmentActivity
             mLastLocation = location;
             LatLng latLng = new LatLng(location.getLatitude(), location.getLongitude());
             mMap.moveCamera(CameraUpdateFactory.newLatLng(latLng));
-            mMap.animateCamera(CameraUpdateFactory.zoomTo(11));
+            mMap.animateCamera(CameraUpdateFactory.zoomTo(14));
 
             String userID = FirebaseAuth.getInstance().getCurrentUser().getUid();
             DatabaseReference refAvailable = FirebaseDatabase.getInstance().getReference("DriverAvailable");
@@ -233,7 +254,7 @@ public class DriverMapActivity extends FragmentActivity
         mLocationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
 
         if (ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-            return;
+            ActivityCompat.requestPermissions(DriverMapActivity.this, new String[]{Manifest.permission.ACCESS_FINE_LOCATION},LOCATION_REQUEST_CODE);
         }
         LocationServices.FusedLocationApi.requestLocationUpdates(mGoogleApiClient, mLocationRequest, this);
     }
@@ -249,9 +270,18 @@ public class DriverMapActivity extends FragmentActivity
     }
 
     @Override
+    protected void onStart() {
+        super.onStart();
+        if(FirebaseAuth.getInstance().getCurrentUser().getUid() != null && isLoggingOut){
+            connectedDriver();
+        }
+    }
+
+    @Override
     protected void onStop() {
         super.onStop();
         if(!isLoggingOut){
+            isLoggingOut = true;
             disconnectedDriver();
         }
     }
@@ -267,6 +297,19 @@ public class DriverMapActivity extends FragmentActivity
 
     }
 
+    private void connectedDriver(){
+
+        LocationServices.FusedLocationApi.removeLocationUpdates(mGoogleApiClient, this);
+        String userID = FirebaseAuth.getInstance().getCurrentUser().getUid();
+        DatabaseReference ref = FirebaseDatabase.getInstance().getReference("DriverAvailable");
+
+        GeoFire mGeoFire = new GeoFire(ref);
+//        geoFireAvailable.setLocation(userID, new GeoLocation(location.getLatitude(), location.getLongitude()));
+        mGeoFire.setLocation(userID, new GeoLocation(mLastLocation.getLatitude(), mLastLocation.getLongitude()));
+
+    }
+
+
     private void getAssignCustomerInfo(){
         mCustomerInfo.setVisibility(View.VISIBLE);
 
@@ -277,6 +320,7 @@ public class DriverMapActivity extends FragmentActivity
             public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
                 if(dataSnapshot.exists() && dataSnapshot.getChildrenCount() > 0 ){
                     Map<String, Object> map = (Map<String, Object>) dataSnapshot.getValue();
+
                     if(map.get("name") != null){
                         final String mUserName = map.get("name").toString();
                         customerName.setText(mUserName);
@@ -298,5 +342,47 @@ public class DriverMapActivity extends FragmentActivity
 
             }
         });
+    }
+
+    private void getAssignCustomerDestination(){
+//        mCustomerInfo.setVisibility(View.VISIBLE);
+
+        String driverID = FirebaseAuth.getInstance().getCurrentUser().getUid();
+        DatabaseReference mcustomerDatabase = FirebaseDatabase.getInstance().getReference().child("Users").child("Drivers").child(driverID).child("CustomerRequest").child("destination");
+
+        mcustomerDatabase.addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                if(dataSnapshot.exists() ){
+                    String destination = dataSnapshot.getValue().toString();
+                    customerDestination.setText("Destination: "+destination);
+                }else{
+                    customerDestination.setText("Destination: --");
+
+                }
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError databaseError) {
+
+            }
+        });
+    }
+
+    final int LOCATION_REQUEST_CODE = 1;
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        switch (requestCode){
+            case LOCATION_REQUEST_CODE:{
+                if(grantResults.length > 0 && grantResults[0]==  PackageManager.PERMISSION_GRANTED){
+                    mapFragment.getMapAsync(this);
+                }
+                else{
+                    Toast.makeText(this, "Pleased Grant Permission", Toast.LENGTH_SHORT).show();
+                }
+            }
+            break;
+        }
     }
 }

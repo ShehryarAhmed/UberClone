@@ -65,9 +65,9 @@ public class DriverLoginActivity extends AppCompatActivity {
                             Toast.makeText(DriverLoginActivity.this, "Some thing went wrong", Toast.LENGTH_SHORT).show();
                         }else{
                             String userID = mAuth.getCurrentUser().getUid();
-                            DatabaseReference current_user_db =
-                                    FirebaseDatabase.getInstance().getReference().child("Users").child("Drivers").child(userID);
-                            current_user_db.setValue(true);
+//                            DatabaseReference current_user_db =
+//                                    FirebaseDatabase.getInstance().getReference().child("Users").child("Drivers").child(userID);
+//                            current_user_db.setValue(true);
 //                            startActivity(new Intent(DriverLoginActivity.this, DriverMapActivity.class));
 
                         }
@@ -95,9 +95,9 @@ public class DriverLoginActivity extends AppCompatActivity {
 
                             startActivity(new Intent(DriverLoginActivity.this, DriverMapActivity.class));
                             String userID = mAuth.getCurrentUser().getUid();
-                            DatabaseReference current_user_db =
-                                    FirebaseDatabase.getInstance().getReference().child("Users").child("Drivers").child(userID);
-                            current_user_db.setValue(true);
+//                            DatabaseReference current_user_db =
+//                                    FirebaseDatabase.getInstance().getReference().child("Users").child("Drivers").child(userID);
+//                            current_user_db.setValue(true);
                         }
                     }
                 });
