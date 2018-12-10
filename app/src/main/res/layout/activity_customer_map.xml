@@ -97,8 +97,33 @@
                 />
         </LinearLayout>
         </LinearLayout>
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:background="@android:color/white">
 
-
+        <RadioGroup
+            android:id="@+id/radioGroup"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+            <RadioButton
+                android:id="@+id/uberX"
+                android:text="UberX"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content" />
+            <RadioButton
+                android:id="@+id/uberBlack"
+                android:text="UberBlack"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content" />
+            <RadioButton
+                android:id="@+id/uberXl"
+                android:text="UberXl"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content" />
+        </RadioGroup>
     <Button
         android:id="@+id/request"
         android:layout_width="match_parent"
@@ -107,5 +132,6 @@
         android:layout_gravity="bottom"
         />
 
+        </LinearLayout>
     </LinearLayout>
 </FrameLayout>

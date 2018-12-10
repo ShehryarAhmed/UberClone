@@ -9,6 +9,7 @@ import android.support.annotation.Nullable;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.FragmentActivity;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ImageView;
@@ -217,7 +218,7 @@ public class DriverMapActivity extends FragmentActivity
             mLastLocation = location;
             LatLng latLng = new LatLng(location.getLatitude(), location.getLongitude());
             mMap.moveCamera(CameraUpdateFactory.newLatLng(latLng));
-            mMap.animateCamera(CameraUpdateFactory.zoomTo(14));
+            mMap.animateCamera(CameraUpdateFactory.zoomTo(18));
 
             String userID = FirebaseAuth.getInstance().getCurrentUser().getUid();
             DatabaseReference refAvailable = FirebaseDatabase.getInstance().getReference("DriverAvailable");
@@ -228,10 +229,13 @@ public class DriverMapActivity extends FragmentActivity
 
             switch (customerID){
                 case "":
+                    Log.d("TAG", "onLocationChanged: "+customerID);
                     geoFireWorking.removeLocation(userID);
                     geoFireAvailable.setLocation(userID, new GeoLocation(location.getLatitude(), location.getLongitude()));
                     break;
                 default:
+                    Log.d("default", "onLocationChanged: "+customerID);
+
                     geoFireAvailable.removeLocation(userID);
                     geoFireWorking.setLocation(userID, new GeoLocation(location.getLatitude(), location.getLongitude()));
                     break;
@@ -292,14 +296,17 @@ public class DriverMapActivity extends FragmentActivity
         String userID = FirebaseAuth.getInstance().getCurrentUser().getUid();
         DatabaseReference ref = FirebaseDatabase.getInstance().getReference("DriverAvailable");
 
-        GeoFire mGeoFire = new GeoFire(ref);
-        mGeoFire.removeLocation(userID);
+        if(ref != null){
+            GeoFire mGeoFire = new GeoFire(ref);
+            mGeoFire.removeLocation(userID);
+
+        }
 
     }
 
     private void connectedDriver(){
 
-        LocationServices.FusedLocationApi.removeLocationUpdates(mGoogleApiClient, this);
+//        LocationServices.FusedLocationApi.removeLocationUpdates(mGoogleApiClient, this);
         String userID = FirebaseAuth.getInstance().getCurrentUser().getUid();
         DatabaseReference ref = FirebaseDatabase.getInstance().getReference("DriverAvailable");
 
