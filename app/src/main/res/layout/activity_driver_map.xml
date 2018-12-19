@@ -25,14 +25,24 @@
     android:name="com.google.android.gms.maps.SupportMapFragment"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    /><LinearLayout
+    />
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:id="@+id/customerInfo"
+        android:orientation="vertical"
+        android:layout_gravity="bottom"
+        android:background="@android:color/white"
+        android:visibility="invisible"
+        >
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:id="@+id/customerInfo1"
         android:orientation="horizontal"
         android:layout_gravity="bottom"
         android:background="@android:color/white"
-        android:visibility="gone"
+
         >
         <ImageView
             android:id="@+id/customerPorfileImage"
@@ -52,7 +62,7 @@
                 android:id="@+id/custmerDestination"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:paddingBottom="10sp"
+                android:paddingBottom="1sp"
                 android:paddingTop="20sp"
                 android:text="Destination: --"
                 />
@@ -60,18 +70,24 @@
                 android:id="@+id/customerName"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:paddingBottom="10sp"
+                android:paddingBottom="1sp"
                 android:paddingTop="20sp"
                 />
             <TextView
                 android:id="@+id/customerPhone"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:paddingBottom="10sp"
+                android:paddingBottom="1sp"
                 android:paddingTop="10sp"
                 />
         </LinearLayout>
 
+    </LinearLayout>
+        <Button
+            android:id="@+id/rideStatus"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Picked Customer"/>
     </LinearLayout>
 
 </FrameLayout>

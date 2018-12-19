@@ -19,8 +19,10 @@ import android.widget.Toast;
 
 
 import com.bumptech.glide.Glide;
+import com.directions.route.AbstractRouting;
 import com.directions.route.Route;
 import com.directions.route.RouteException;
+import com.directions.route.Routing;
 import com.directions.route.RoutingListener;
 import com.firebase.geofire.GeoFire;
 import com.firebase.geofire.GeoLocation;
@@ -36,6 +38,8 @@ import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
+import com.google.android.gms.maps.model.Polyline;
+import com.google.android.gms.maps.model.PolylineOptions;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
@@ -56,7 +60,14 @@ public class DriverMapActivity extends FragmentActivity
     LocationRequest mLocationRequest;
     private Button mLogoutBtn;
     private Button mSettingsBtn;
-    private String customerID = "";
+    private Button mRideStatusBtn;
+
+    private String customerID = "", destination;
+
+    private int status =  0;
+    private LatLng destinationLatlng;
+
+
     private boolean  isLoggingOut = false;
     private SupportMapFragment mapFragment;
     private LinearLayout mCustomerInfo;
@@ -64,6 +75,9 @@ public class DriverMapActivity extends FragmentActivity
     private TextView customerDestination;
     private TextView customerName;
     private TextView customerPhone;
+
+    private List<Polyline> polylines;
+    private static final int[] COLORS = new int[]{R.color.primary_dark_material_light};
 
 
 
@@ -74,7 +88,7 @@ public class DriverMapActivity extends FragmentActivity
         // Obtain the SupportMapFragment and get notified when the map is ready to be used.
         mapFragment = (SupportMapFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.map);
-
+        polylines = new ArrayList<>();
         if (ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
             ActivityCompat.requestPermissions(DriverMapActivity.this, new String[]{Manifest.permission.ACCESS_FINE_LOCATION},LOCATION_REQUEST_CODE);
         }else{
@@ -85,11 +99,34 @@ public class DriverMapActivity extends FragmentActivity
 
         mLogoutBtn = (Button) findViewById(R.id.logout);
         mSettingsBtn = (Button) findViewById(R.id.setting);
+        mRideStatusBtn = (Button) findViewById(R.id.rideStatus);
         mCustomerInfo = (LinearLayout) findViewById(R.id.customerInfo);
         mCustomerProfileImage = (ImageView) findViewById(R.id.customerPorfileImage);
         customerDestination= (TextView) findViewById(R.id.custmerDestination);
         customerName= (TextView) findViewById(R.id.customerName);
         customerPhone = (TextView) findViewById(R.id.customerPhone);
+
+        mRideStatusBtn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                switch (status){
+                    case 1:
+                        status = 2;
+                        erasePloyLines();
+
+                        if (destinationLatlng.latitude != 0.0 && destinationLatlng.longitude != 0.0){
+                            getRouteToMarker(destinationLatlng);
+                        }
+                        mRideStatusBtn.setText("drive Completed");
+                        break;
+
+                    case 2:
+                        endRide();
+                        break;
+                }
+            }
+        });
+
 
         mLogoutBtn.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -122,25 +159,27 @@ public class DriverMapActivity extends FragmentActivity
             @Override
             public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
                 if (dataSnapshot.exists()) {
+                        status = 1;
                         customerID = dataSnapshot.getValue().toString();
                         getAssignCustomerPickupLocation();
                         getAssignCustomerInfo();
                         getAssignCustomerDestination();
                 }
                 else{
-                    customerID = "";
-                    if(pickUpLocationMarker != null){
-                        pickUpLocationMarker.remove();
-                    }
-                    if(assignCustomerPickUpLocationRefListner != null){
-                        assignCustomerPickUpLocationRef.removeEventListener(assignCustomerPickUpLocationRefListner);
-
-                    }
-                    mCustomerInfo.setVisibility(View.GONE);
-                    mCustomerProfileImage.setImageResource(R.drawable.ic_launcher_background);
-                    customerName.setText("");
-                    customerPhone.setText("");
-                    customerDestination.setText("Destination: --");
+                     endRide();
+//                    customerID = "";
+//                    erasePloyLines();
+//                    if(pickUpLocationMarker != null){
+//                        pickUpLocationMarker.remove();
+//                    }
+//                    if(assignCustomerPickUpLocationRefListner != null){
+//                        assignCustomerPickUpLocationRef.removeEventListener(assignCustomerPickUpLocationRefListner);
+//                    }
+//                    mCustomerInfo.setVisibility(View.GONE);
+//                    mCustomerProfileImage.setImageResource(R.drawable.ic_launcher_background);
+//                    customerName.setText("");
+//                    customerPhone.setText("");
+//                    customerDestination.setText("Destination: --");
                 }
             }
 
@@ -174,9 +213,9 @@ public class DriverMapActivity extends FragmentActivity
                     if (map.get(1) != null) {
                         locationLng = Double.parseDouble(map.get(1).toString());
                     }
-                    LatLng driverLatlng = new LatLng(locationLat, locationLng);
-                    pickUpLocationMarker = mMap.addMarker(new MarkerOptions().position(driverLatlng).title("Pick up Location").icon(BitmapDescriptorFactory.fromResource(R.mipmap.ic_pickup)));
-
+                    LatLng pickupLatLng = new LatLng(locationLat, locationLng);
+                    pickUpLocationMarker = mMap.addMarker(new MarkerOptions().position(pickupLatLng).title("Pick up Location").icon(BitmapDescriptorFactory.fromResource(R.mipmap.ic_pickup)));
+                    getRouteToMarker(pickupLatLng);
                 }
             }
 
@@ -187,6 +226,68 @@ public class DriverMapActivity extends FragmentActivity
         });
 
     }
+
+    private void getRouteToMarker(LatLng pickupLatLng) {
+        if (pickupLatLng != null && mLastLocation != null){
+            Routing routing = new Routing.Builder()
+
+                    .travelMode(AbstractRouting.TravelMode.DRIVING)
+                    .withListener(this)
+                    .alternativeRoutes(false)
+                    .waypoints(new LatLng(mLastLocation.getLatitude(), mLastLocation.getLongitude()), pickupLatLng)
+
+                    .build();
+            routing.execute();
+        }
+
+    }
+    private String getDirectionsUrl(LatLng origin,LatLng dest){
+        // Origin of route
+        String str_origin = "origin="+origin.latitude+","+origin.longitude;
+        // Destination of route
+        String str_dest = "destination="+dest.latitude+","+dest.longitude;
+        // Sensor enabled
+        String sensor = "sensor=false";
+        // Building the parameters to the web service
+        String parameters = str_origin+"&"+str_dest+"&"+sensor;
+        // Output format
+        String output = "json";
+        // Building the url to the web service
+        String url = "https://maps.googleapis.com/maps/api/directions/"+output+"?"+parameters+ "&key=AIzaSyBtZK9vReQL1gmLXPSJElx9Yabl6wjSa48" ;
+        return url;
+    }
+
+
+    private  void endRide(){
+        mRideStatusBtn.setText("Picked Customer");
+        erasePloyLines();
+
+        String userId = FirebaseAuth.getInstance().getCurrentUser().getUid();
+        DatabaseReference driverRef = FirebaseDatabase.getInstance().getReference().child("Users").child("Drivers").child(userId).child("CustomerRequest");
+        driverRef.removeValue();
+
+        DatabaseReference Ref = FirebaseDatabase.getInstance().getReference("CustomerRequest");
+        GeoFire geoFire = new GeoFire(Ref);
+        geoFire.removeLocation(customerID);
+
+        customerID ="";
+
+        if(pickUpLocationMarker != null){
+            pickUpLocationMarker.remove();
+        }
+
+        if(assignCustomerPickUpLocationRefListner != null){
+            assignCustomerPickUpLocationRef.removeEventListener(assignCustomerPickUpLocationRefListner);
+        }
+
+        mCustomerInfo.setVisibility(View.GONE);
+        mCustomerProfileImage.setImageResource(R.drawable.ic_launcher_background);
+        customerName.setText("");
+        customerPhone.setText("");
+        customerDestination.setText("Destination: --");
+
+
+        }
 
     @Override
     public void onMapReady(GoogleMap googleMap) {
@@ -303,7 +404,6 @@ public class DriverMapActivity extends FragmentActivity
         if(ref != null){
             GeoFire mGeoFire = new GeoFire(ref);
             mGeoFire.removeLocation(userID);
-
         }
 
     }
@@ -364,17 +464,35 @@ public class DriverMapActivity extends FragmentActivity
 //        mCustomerInfo.setVisibility(View.VISIBLE);
 
         String driverID = FirebaseAuth.getInstance().getCurrentUser().getUid();
-        DatabaseReference mcustomerDatabase = FirebaseDatabase.getInstance().getReference().child("Users").child("Drivers").child(driverID).child("CustomerRequest").child("destination");
+        DatabaseReference mcustomerDatabase = FirebaseDatabase.getInstance().getReference().child("Users").child("Drivers").child(driverID).child("CustomerRequest");
 
         mcustomerDatabase.addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
-                if(dataSnapshot.exists() ){
-                    String destination = dataSnapshot.getValue().toString();
-                    customerDestination.setText("Destination: "+destination);
-                }else{
-                    customerDestination.setText("Destination: --");
+                if(dataSnapshot.exists() ) {
 
+                    Map<String, Object> map = (Map<String, Object>) dataSnapshot.getValue();
+
+                    if(map.get("destination")!= null){
+                        destination = map.get("destination").toString();
+                        customerDestination.setText("Destination: "+destination);
+                    }
+                    else{
+                        customerDestination.setText("Destination : --");
+                    }
+
+                    Double destinationlat = 0.0;
+                    Double destinationlng = 0.0;
+
+                    if(map.get("destinationLat")!= null){
+                        destinationlat = Double.valueOf(map.get("destinationLat").toString());
+                    }
+
+                    if(map.get("destinationLng")!= null){
+                        destinationlng = Double.valueOf(map.get("destinationLng").toString());
+                        destinationLatlng =     new LatLng(destinationlat, destinationlng);
+
+                    }
                 }
             }
 
@@ -404,7 +522,14 @@ public class DriverMapActivity extends FragmentActivity
 
     @Override
     public void onRoutingFailure(RouteException e) {
+        if(e != null) {
+            Toast.makeText(this, "Error: " + e.getMessage(), Toast.LENGTH_LONG).show();
+            Log.d("TAG IF", "onRoutingFailure: "+e.getMessage());
+        }else {
+            Toast.makeText(this, "Something went wrong, Try again", Toast.LENGTH_SHORT).show();
+            Log.d("TAG ELSE", "onRoutingFailure: "+e);
 
+        }
     }
 
     @Override
@@ -413,12 +538,41 @@ public class DriverMapActivity extends FragmentActivity
     }
 
     @Override
-    public void onRoutingSuccess(ArrayList<Route> arrayList, int i) {
+    public void onRoutingSuccess(ArrayList<Route> route, int shortestRouterIndex) {
+        if(polylines.size()>0) {
+            for (Polyline poly : polylines) {
+                poly.remove();
+            }
+        }
 
+        polylines = new ArrayList<>();
+        //add route(s) to the map.
+        for (int i = 0; i <route.size(); i++) {
+
+            //In case of more than 5 alternative routes
+            int colorIndex = i % COLORS.length;
+
+            PolylineOptions polyOptions = new PolylineOptions();
+            polyOptions.color(getResources().getColor(COLORS[colorIndex]));
+            polyOptions.width(10 + i * 3);
+            polyOptions.addAll(route.get(i).getPoints());
+            Polyline polyline = mMap.addPolyline(polyOptions);
+            polylines.add(polyline);
+
+            Toast.makeText(getApplicationContext(),"Route "+ (i+1) +": distance - "+ route.get(i).getDistanceValue()+": duration - "+ route.get(i).getDurationValue(),Toast.LENGTH_SHORT).show();
+
+        }
     }
 
     @Override
     public void onRoutingCancelled() {
 
+    }
+
+    private void erasePloyLines(){
+        for(Polyline line : polylines){
+            line.remove();
+        }
+        polylines.clear();
     }
 }
