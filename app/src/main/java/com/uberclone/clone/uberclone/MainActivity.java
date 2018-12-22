@@ -17,6 +17,7 @@ public class MainActivity extends AppCompatActivity {
         mDrive = (Button) findViewById(R.id.driver);
         mCustomer = (Button) findViewById(R.id.customer);
 
+        startService(new Intent(MainActivity.this,OnAppKilled.class));
         mDrive.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {

@@ -12,8 +12,10 @@ import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
+import android.widget.CompoundButton;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
+import android.widget.Switch;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -80,7 +82,7 @@ public class DriverMapActivity extends FragmentActivity
     private List<Polyline> polylines;
     private static final int[] COLORS = new int[]{R.color.primary_dark_material_light};
 
-
+    private Switch mWorkingSwitch;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -107,6 +109,18 @@ public class DriverMapActivity extends FragmentActivity
         customerName= (TextView) findViewById(R.id.customerName);
         customerPhone = (TextView) findViewById(R.id.customerPhone);
 
+        mWorkingSwitch = (Switch) findViewById(R.id.working_switch);
+
+        mWorkingSwitch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                if(isChecked){
+                    connectedDriver();
+                }else{
+                    disconnectedDriver();
+                }
+            }
+        });
         mRideStatusBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -386,6 +400,12 @@ public class DriverMapActivity extends FragmentActivity
 
     }
 
+    private void connectedDriver(){
+        if (ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(DriverMapActivity.this, new String[]{Manifest.permission.ACCESS_FINE_LOCATION},LOCATION_REQUEST_CODE);
+        }
+        LocationServices.FusedLocationApi.requestLocationUpdates(mGoogleApiClient, mLocationRequest, this);
+    }
 
     @Override
     public void onConnected(@Nullable Bundle bundle) {
@@ -394,11 +414,7 @@ public class DriverMapActivity extends FragmentActivity
         mLocationRequest.setFastestInterval(1000);
         mLocationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
 
-        if (ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-            ActivityCompat.requestPermissions(DriverMapActivity.this, new String[]{Manifest.permission.ACCESS_FINE_LOCATION},LOCATION_REQUEST_CODE);
-        }
-        LocationServices.FusedLocationApi.requestLocationUpdates(mGoogleApiClient, mLocationRequest, this);
-    }
+   }
 
     @Override
     public void onConnectionSuspended(int i) {
@@ -414,18 +430,18 @@ public class DriverMapActivity extends FragmentActivity
     protected void onStart() {
         super.onStart();
         if(FirebaseAuth.getInstance().getCurrentUser().getUid() != null && isLoggingOut){
-            connectedDriver();
+//            connectedDriver();
         }
     }
 
-    @Override
-    protected void onStop() {
-        super.onStop();
-        if(!isLoggingOut){
-            isLoggingOut = true;
-            disconnectedDriver();
-        }
-    }
+//    @Override
+//    protected void onStop() {
+//        super.onStop();
+//        if(!isLoggingOut){
+//            isLoggingOut = true;
+//            disconnectedDriver();
+//        }
+//    }
 
     private void disconnectedDriver(){
 
@@ -440,23 +456,23 @@ public class DriverMapActivity extends FragmentActivity
 
     }
 
-    private void connectedDriver(){
-
-//        LocationServices.FusedLocationApi.removeLocationUpdates(mGoogleApiClient, this);
-        if (ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-            ActivityCompat.requestPermissions(DriverMapActivity.this, new String[]{Manifest.permission.ACCESS_FINE_LOCATION},LOCATION_REQUEST_CODE);
-        }
-        LocationServices.FusedLocationApi.requestLocationUpdates(mGoogleApiClient, mLocationRequest, this);
-
-        String userID = FirebaseAuth.getInstance().getCurrentUser().getUid();
-        DatabaseReference ref = FirebaseDatabase.getInstance().getReference("DriverAvailable");
-
-        GeoFire mGeoFire = new GeoFire(ref);
-//        geoFireAvailable.setLocation(userID, new GeoLocation(location.getLatitude(), location.getLongitude()));
-        mGeoFire.setLocation(userID, new GeoLocation(mLastLocation.getLatitude(), mLastLocation.getLongitude()));
-
-    }
-
+//    private void connectedDriver(){
+//
+////        LocationServices.FusedLocationApi.removeLocationUpdates(mGoogleApiClient, this);
+//        if (ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+//            ActivityCompat.requestPermissions(DriverMapActivity.this, new String[]{Manifest.permission.ACCESS_FINE_LOCATION},LOCATION_REQUEST_CODE);
+//        }
+//        LocationServices.FusedLocationApi.requestLocationUpdates(mGoogleApiClient, mLocationRequest, this);
+//
+//        String userID = FirebaseAuth.getInstance().getCurrentUser().getUid();
+//        DatabaseReference ref = FirebaseDatabase.getInstance().getReference("DriverAvailable");
+//
+//        GeoFire mGeoFire = new GeoFire(ref);
+////        geoFireAvailable.setLocation(userID, new GeoLocation(location.getLatitude(), location.getLongitude()));
+//        mGeoFire.setLocation(userID, new GeoLocation(mLastLocation.getLatitude(), mLastLocation.getLongitude()));
+//
+//    }
+//
 
     private void getAssignCustomerInfo(){
         mCustomerInfo.setVisibility(View.VISIBLE);
