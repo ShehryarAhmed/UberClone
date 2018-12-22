@@ -18,6 +18,7 @@ import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.RadioButton;
 import android.widget.RadioGroup;
+import android.widget.RatingBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -64,6 +65,7 @@ public class CustomerMapActivity extends FragmentActivity
     private Button mLoggingBtn;
     private Button mRequestBtn;
     private Button mSettingBtn;
+    private Button mHistoryBtn;
     private LatLng pickUpLocation;
     private Boolean requestBol = false;
     private Boolean requestServiceBol = false;
@@ -89,6 +91,8 @@ public class CustomerMapActivity extends FragmentActivity
     private TextView mDriverName;
     private TextView mDriverPhone;
 
+    private RatingBar mRatingBar;
+
     private RadioGroup mRadioGroup;
 
 
@@ -109,6 +113,7 @@ public class CustomerMapActivity extends FragmentActivity
 
         mLoggingBtn = (Button) findViewById(R.id.logout);
         mRequestBtn = (Button) findViewById(R.id.request);
+        mHistoryBtn = (Button) findViewById(R.id.history);
         mSettingBtn = (Button) findViewById(R.id.setting);
 
         mDrvierInfo = (LinearLayout) findViewById(R.id.drvierInfo);
@@ -117,6 +122,7 @@ public class CustomerMapActivity extends FragmentActivity
         mDriverPhone = (TextView) findViewById(R.id.driverPhone);
         mDrvierCar = (TextView) findViewById(R.id.driverCar);
 
+        mRatingBar = (RatingBar) findViewById(R.id.ratingBar);
         mRadioGroup = (RadioGroup) findViewById(R.id.radioGroup);
         mRadioGroup.check(R.id.uberX);
 
@@ -172,6 +178,17 @@ public class CustomerMapActivity extends FragmentActivity
                     }
                 });
 
+
+                mHistoryBtn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                Intent intent = new Intent(CustomerMapActivity.this,HistoryActivity.class);
+                intent.putExtra("customerOrDriver","Customres");
+                startActivity(intent);
+                return;
+            }
+        });
+
         PlaceAutocompleteFragment autocompleteFragment = (PlaceAutocompleteFragment)
                 getFragmentManager().findFragmentById(R.id.place_autocomplete_fragment);
 
@@ -216,10 +233,18 @@ public class CustomerMapActivity extends FragmentActivity
                         final String mProfileImageUrl = map.get("profileImageUrl").toString();
                         Glide.with(getApplicationContext()).load(mProfileImageUrl).into(mDrvierProfileImage);
                     }
-                }
-                else{
 
-
+                    int ratingSum = 0;
+                    float ratingTotal = 0;
+                    float avgRating = 0;
+                    for (DataSnapshot child : dataSnapshot.child("rating").getChildren()){
+                        ratingSum = ratingSum + Integer.valueOf(child.getValue().toString());
+                        ratingTotal++;
+                    }
+                    if(ratingTotal != 0){
+                        avgRating = ratingSum/ratingTotal;
+                        mRatingBar.setRating(avgRating);
+                    }
                 }
             }
 

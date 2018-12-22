@@ -48,6 +48,7 @@ import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -65,7 +66,7 @@ public class DriverMapActivity extends FragmentActivity
     private String customerID = "", destination;
 
     private int status =  0;
-    private LatLng destinationLatlng;
+    private LatLng destinationLatlng,pickupLatLng ;
 
 
     private boolean  isLoggingOut = false;
@@ -121,6 +122,7 @@ public class DriverMapActivity extends FragmentActivity
                         break;
 
                     case 2:
+                        recordRide();
                         endRide();
                         break;
                 }
@@ -210,10 +212,10 @@ public class DriverMapActivity extends FragmentActivity
                         locationLat = Double.parseDouble(map.get(0).toString());
                     }
 
-                    if (map.get(1) != null) {
+                     if (map.get(1) != null) {
                         locationLng = Double.parseDouble(map.get(1).toString());
                     }
-                    LatLng pickupLatLng = new LatLng(locationLat, locationLng);
+                    pickupLatLng  = new LatLng(locationLat, locationLng);
                     pickUpLocationMarker = mMap.addMarker(new MarkerOptions().position(pickupLatLng).title("Pick up Location").icon(BitmapDescriptorFactory.fromResource(R.mipmap.ic_pickup)));
                     getRouteToMarker(pickupLatLng);
                 }
@@ -288,6 +290,36 @@ public class DriverMapActivity extends FragmentActivity
 
 
         }
+
+        private void recordRide(){
+            String userId = FirebaseAuth.getInstance().getCurrentUser().getUid();
+            DatabaseReference driverRef = FirebaseDatabase.getInstance().getReference().child("Users").child("Drivers").child(userId).child("History");
+            DatabaseReference custmerRef = FirebaseDatabase.getInstance().getReference().child("Users").child("Customres").child(customerID).child("History");
+            DatabaseReference historyRef = FirebaseDatabase.getInstance().getReference().child("History");
+
+            String requestId = historyRef.push().getKey();
+            driverRef.child(requestId).setValue(true);
+            custmerRef.child(requestId).setValue(true);
+
+            HashMap map = new HashMap();
+            map.put("driver",userId);
+            map.put("customer",customerID);
+            map.put("rating",0);
+            map.put("timeStamp",getCurrentTime());
+            map.put("destination",destination);
+            map.put("location/from/lat",pickupLatLng.latitude);
+            map.put("location/from/lng",pickupLatLng.longitude);
+            map.put("location/to/lat",destinationLatlng.latitude);
+            map.put("location/to/lng",destinationLatlng.longitude);
+            map.put("timeStamp",getCurrentTime());
+
+
+            historyRef.child(requestId).updateChildren(map);
+        }
+
+    private Long getCurrentTime() {
+            return  System.currentTimeMillis()/1000;
+    }
 
     @Override
     public void onMapReady(GoogleMap googleMap) {

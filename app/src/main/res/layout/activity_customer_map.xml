@@ -15,25 +15,44 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content">
 
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:id="@+id/buttons"
+        >
      <Button
         android:id="@+id/logout"
-        android:layout_width="wrap_content"
+         android:layout_width="0dp"
+         android:layout_weight="1"
         android:layout_height="wrap_content"
         android:text="Logout"
          android:layout_alignParentLeft="true"
         >
     </Button>
+        <Button
+            android:layout_gravity="right"
+            android:id="@+id/history"
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:layout_height="wrap_content"
+            android:text="History"
+            android:layout_alignParentRight="true"
+            >
+        </Button>
     <Button
         android:layout_gravity="right"
         android:id="@+id/setting"
-        android:layout_width="wrap_content"
+        android:layout_width="0dp"
+        android:layout_weight="1"
         android:layout_height="wrap_content"
         android:text="Setting"
         android:layout_alignParentRight="true"
         >
     </Button>
+    </LinearLayout>
+
         <android.support.v7.widget.CardView
-            android:layout_below="@id/setting"
+            android:layout_below="@id/buttons"
             android:layout_width="match_parent"
             android:layout_height="wrap_content">
             <fragment
@@ -94,6 +113,14 @@
                 android:layout_height="wrap_content"
                 android:paddingBottom="10sp"
                 android:paddingTop="10sp"
+                />
+            <RatingBar
+                android:id="@+id/ratingBar"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:numStars="5"
+                android:stepSize="0.5"
                 />
         </LinearLayout>
         </LinearLayout>
