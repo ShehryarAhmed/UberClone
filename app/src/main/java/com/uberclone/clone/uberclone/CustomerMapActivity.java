@@ -50,6 +50,7 @@ import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -210,6 +211,64 @@ public class CustomerMapActivity extends FragmentActivity
         });
     }
 
+    List<Marker> markerList = new ArrayList<Marker>();
+
+    private boolean getDriverArroundStarted = false;
+    private void getDriverArround(){
+        getDriverArroundStarted = true;
+        DatabaseReference driversLocations = FirebaseDatabase.getInstance().getReference().child("DriverAvailable");
+        if(driversLocations != null) {
+            GeoFire geoFire = new GeoFire(driversLocations);
+            GeoQuery geoQuery = geoFire.queryAtLocation(new GeoLocation(mLastLocation.getLatitude(),mLastLocation.getLongitude()), 10000);
+            geoQuery.addGeoQueryEventListener(new GeoQueryEventListener() {
+                @Override
+                public void onKeyEntered(String key, GeoLocation location) {
+                    for(Marker marker : markerList){
+                        if(marker.getTag().equals(key)){
+                            return;
+                        }
+                    }
+
+                    LatLng driverLocation = new LatLng(location.latitude,location.longitude);
+
+                    Marker mDriverMarker = mMap.addMarker(new MarkerOptions().position(driverLocation).title(key));
+                    mDriverMarker.setTag(key);
+                    markerList.add(mDriverMarker);
+                }
+
+                @Override
+                public void onKeyExited(String key) {
+                    for(Marker markerIt : markerList) {
+                        if(markerIt.getTag().equals(key)){
+                            markerIt.remove();
+                            markerList.remove(markerIt);
+                            return;
+                        }
+                    }
+                }
+
+                @Override
+                public void onKeyMoved(String key, GeoLocation location) {
+                    for(Marker markerIt : markerList) {
+                        if(markerIt.getTag().equals(key)){
+                            markerIt.setPosition(new LatLng(location.latitude,location.longitude));
+                        }
+                    }
+                }
+
+                @Override
+                public void onGeoQueryReady() {
+
+                }
+
+                @Override
+                public void onGeoQueryError(DatabaseError error) {
+
+                }
+            });
+        }
+    }
+
     private void getDriverInfo() {
         mDrvierInfo.setVisibility(View.VISIBLE);
 
@@ -234,11 +293,11 @@ public class CustomerMapActivity extends FragmentActivity
                         Glide.with(getApplicationContext()).load(mProfileImageUrl).into(mDrvierProfileImage);
                     }
 
-                    int ratingSum = 0;
+                    float ratingSum = 0;
                     float ratingTotal = 0;
                     float avgRating = 0;
                     for (DataSnapshot child : dataSnapshot.child("rating").getChildren()){
-                        ratingSum = ratingSum + Integer.valueOf(child.getValue().toString());
+                        ratingSum = ratingSum + Float.valueOf(child.getValue().toString());
                         ratingTotal++;
                     }
                     if(ratingTotal != 0){
@@ -473,6 +532,8 @@ public class CustomerMapActivity extends FragmentActivity
         mMap.moveCamera(CameraUpdateFactory.newLatLng(latLng));
         mMap.animateCamera(CameraUpdateFactory.zoomTo(14));
 
+        if(!getDriverArroundStarted)
+            getDriverArround();
 //        String userID = FirebaseAuth.getInstance().getCurrentUser().getUid();
 //        DatabaseReference ref = FirebaseDatabase.getInstance().getReference("DriverAvailable");
 //
